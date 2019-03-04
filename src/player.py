@@ -1,11 +1,12 @@
 from pieces import Card
+import pieces
 from scoring import Scoring, ScoringCard, ScoringCheque
 import control
 
 class Player:
     def __init__(self, player_agent, starting_cheques):
         self._player_agent = player_agent
-        self._available_cheques = starting_cheques
+        self._available_cheques = starting_cheques[:]
         self._unavailable_cheques = []
         self._cards = []
         self._scored_cards = []
@@ -33,27 +34,8 @@ class Player:
     @property
     def num_bodyguards(self):
         return self._counts[Card.Bodyguard]
-    @property
-    def score(self):
-        return self._scoring.total_score()
-    @property
-    def detailed_score(self):
+    def get_final_scoring(self):
         return self._scoring
-    @property
-    def accumulated_card_score(self):
-        round_scores = sum(sc.scored_points for sc in self._scored_cards)
-        game_end_scores = sum(sc.scored_points for sc in self._cards)
-        return round_scores + game_end_scores
-    @property
-    def adjusted_card_score(self):
-        round_scores = sum(sc.scored_points for sc in self._scored_cards)
-        game_end_scores = sum(sc.scored_points for sc in self._cards)
-        r = control.GAME_ROUNDS
-        return round_scores + game_end_scores + (-5 * r - 2 * r)  # Trinkets and bodyguards start with negative points
-    @property
-    def cheque_score(self):
-        return sum(sc.scored_points for sc in self._scoring_cheques)
-
     def available_cheques(self):
         return self._available_cheques
     def has_cheque_available(self, cheque):
@@ -73,24 +55,24 @@ class Player:
         for c in cards:
             self._counts[c] += 1
 
-    def round_scoring(self, min_bodyguard, max_bodyguard):
+    def do_round_scoring(self, min_bodyguard, max_bodyguard):
         self._scoring.score_round(min_bodyguard, max_bodyguard, self._cards)
         self._scoring.assign_round_card_scores(min_bodyguard, max_bodyguard, self._cards)
 
-        to_remove = [Card.GoldCoin, Card.Thief, Card.Ring, Card.Watch, Card.Brooch, Card.Chain, Card.Diamond, Card.Driver]  # TODO: unify
-        self._scored_cards.extend(sc for sc in self._cards if sc.card in to_remove)
-        self._cards = [sc for sc in self._cards if sc.card not in to_remove]
-        for card_type in to_remove:
+        self._scored_cards.extend(sc for sc in self._cards if sc.card in pieces.REMOVABLE_CARDS)
+        self._cards = [sc for sc in self._cards if sc.card not in pieces.REMOVABLE_CARDS]
+        for card_type in pieces.REMOVABLE_CARDS:
             self._counts[card_type] = 0
 
-    def game_end_scoring(self, min_money, max_money):
-        cheques = self._available_cheques[:]  # copy
-        cheques.extend(self._unavailable_cheques)
+    def do_game_end_scoring(self, min_money, max_money):
+        cheques = self._available_cheques + self._unavailable_cheques
         self._scoring_cheques = [ScoringCheque(c) for c in cheques]
         self._scoring.score_businesses(self._cards)
         self._scoring.score_cheques(min_money, max_money, self._scoring_cheques)
         self._scoring.assign_business_card_scores(self._cards)
         self._scoring.assign_cheque_scores(min_money, max_money, self._scoring_cheques)
+        self._scoring.attach_final_scoring_cards(self._scored_cards + self._cards)
+        self._scoring.attach_final_scoring_cheques(self._scoring_cheques)
 
     def __str__(self):
         s  = '\n' + str(self._player_agent) + '\n'

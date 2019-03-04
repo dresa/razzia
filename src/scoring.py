@@ -1,5 +1,7 @@
 from enum import Enum
 from pieces import Card
+import pieces
+import control
 
 class Score(Enum):
     Trinkets=1
@@ -36,9 +38,37 @@ class Scoring:
     def __init__(self, name):
         self._name = name
         self._scores = {s: 0 for s in Score}
+        self._scoring_cards = None
+        self._scoring_cheques = None
 
-    def total_score(self):
-        return sum(self._scores.values())
+    def final_score(self):
+        return round(sum(self._scores.values()))
+
+    def final_card_score(self):
+        return round(sum(sc.scored_points for sc in self._scoring_cards))
+
+    def final_cheque_score(self):
+        return round(sum(sc.scored_points for sc in self._scoring_cheques))
+
+    def final_accumulated_card_score(self):
+        return round(sum(sc.scored_points for sc in self._scoring_cards))
+
+    def final_adjusted_card_score(self):
+        raw_scores = round(sum(sc.scored_points for sc in self._scoring_cards))
+        r = control.GAME_ROUNDS
+        return raw_scores + (-5 * r - 2 * r)  # Trinkets and bodyguards start with negative points
+
+    def final_scoring_cards(self):
+        return self._scoring_cards
+
+    def final_scoring_cheques(self):
+        return self._scoring_cheques
+
+    def attach_final_scoring_cards(self, scoring_cards):
+        self._scoring_cards = scoring_cards
+
+    def attach_final_scoring_cheques(self, scoring_cheques):
+        self._scoring_cheques = scoring_cheques
 
     def _count_cards(self, scoring_cards):
         return {c: len([sc for sc in scoring_cards if sc.card == c]) for c in Card}
@@ -47,8 +77,7 @@ class Scoring:
         counts = self._count_cards(scoring_cards)
         score_gold = 3 * counts[Card.GoldCoin]
         score_thief = 2 * counts[Card.Thief]
-        trinkets = [Card.Ring, Card.Watch, Card.Brooch, Card.Chain, Card.Diamond]  # TODO: unify
-        num_unique_trinkets = len([t for t in trinkets if counts[t]])
+        num_unique_trinkets = len([t for t in pieces.TRINKET_CARDS if counts[t]])
         score_trinkets = {0: -5, 1: 0, 2: 0, 3: 5, 4: 10, 5: 15}[num_unique_trinkets]
         bodyguard_low = -2 if counts[Card.Bodyguard] == min_bodyguard else 0
         bodyguard_high = 5 if counts[Card.Bodyguard] == max_bodyguard else 0
@@ -65,8 +94,7 @@ class Scoring:
 
     def assign_round_card_scores(self, min_bodyguard, max_bodyguard, scoring_cards):
         counts = self._count_cards(scoring_cards)
-        trinkets = [Card.Ring, Card.Watch, Card.Brooch, Card.Chain, Card.Diamond]  # TODO: unify
-        num_unique_trinkets = len([t for t in trinkets if counts[t]])
+        num_unique_trinkets = len([t for t in pieces.TRINKET_CARDS if counts[t]])
         added_score_per_unique_trinket = None
         if num_unique_trinkets:
             score_trinkets = {0: -5, 1: 0, 2: 0, 3: 5, 4: 10, 5: 15}[num_unique_trinkets]
@@ -83,7 +111,7 @@ class Scoring:
             elif bodyguard_high: added_score_per_bodyguard = (2 + 5) / bodyguards
             else: added_score_per_bodyguard = 2 / bodyguards  # scores 0 points instead of -2, so impact is +2
         for sc in scoring_cards:
-            if sc.card in trinkets: sc.scored_points += added_score_per_unique_trinket / counts[sc.card]
+            if sc.card in pieces.TRINKET_CARDS: sc.scored_points += added_score_per_unique_trinket / counts[sc.card]
             elif sc.card == Card.GoldCoin: sc.scored_points += 3
             elif sc.card == Card.Thief: sc.scored_points += 2
             elif sc.card == Card.Bodyguard: sc.scored_points += added_score_per_bodyguard
@@ -95,28 +123,24 @@ class Scoring:
 
     def score_businesses(self, scoring_cards):
         counts = self._count_cards(scoring_cards)
-        businesses = [Card.Casino, Card.Transportation, Card.Film, Card.HorseRacing,
-                      Card.RealEstate, Card.NightClub, Card.Restaurant]  # TODO: unify
-        num_unique_businesses = len([b for b in businesses if counts[b]])
-        got_all_businesses = num_unique_businesses == len(businesses)
+        num_unique_businesses = len([b for b in pieces.BUSINESS_CARDS if counts[b]])
+        got_all_businesses = num_unique_businesses == len(pieces.BUSINESS_CARDS)
         business_bonus = 3 if got_all_businesses else 0
         score_unique_businesses = num_unique_businesses + business_bonus
-        score_multi_businesses = sum([5 * (counts[b] - 2) for b in businesses if counts[b] >= 3])
+        score_multi_businesses = sum([5 * (counts[b] - 2) for b in pieces.BUSINESS_CARDS if counts[b] >= 3])
         self._scores[Score.Businesses] += score_unique_businesses + score_multi_businesses
 
     def assign_business_card_scores(self, scoring_cards):
         counts = self._count_cards(scoring_cards)
-        businesses = [Card.Casino, Card.Transportation, Card.Film, Card.HorseRacing,
-                      Card.RealEstate, Card.NightClub, Card.Restaurant]  # TODO: unify duplicates
-        num_unique_businesses = len([b for b in businesses if counts[b]])  # TODO: combine with "score_businesses"
-        got_all_businesses = num_unique_businesses == len(businesses)
+        num_unique_businesses = len([b for b in pieces.BUSINESS_CARDS if counts[b]])  # TODO: combine with "score_businesses"
+        got_all_businesses = num_unique_businesses == len(pieces.BUSINESS_CARDS)
         for sc in scoring_cards:
-            if sc.card in businesses:
+            if sc.card in pieces.BUSINESS_CARDS:
                 n = counts[sc.card]
                 # one point for each unique Business, divided by number of Business cards
                 unique_points = 1 / n
                 # 3 bonus points if all Businesses exist --> so 3/7 points per unique, divided by duplicates
-                bonus_points = 3 / len(businesses) / n if got_all_businesses else 0
+                bonus_points = 3 / len(pieces.BUSINESS_CARDS) / n if got_all_businesses else 0
                 # extra points for duplicate Businesses, if three or four cards of each, divided by like cards.
                 multi_points = 5 * (n - 2) / n if n >= 3 else 0
                 sc.scored_points += unique_points + bonus_points + multi_points
@@ -137,6 +161,6 @@ class Scoring:
             sc.scored_points += score_money / len(scoring_cheques)
 
     def __str__(self):
-        s  = 'Scoring {} total {}:\n'.format(self._name, self.total_score())
+        s  = 'Scoring {} total {}:\n'.format(self._name, self.final_score())
         s += '\n'.join('  {}: {}'.format(k, v) for k, v in self._scores.items())
         return s

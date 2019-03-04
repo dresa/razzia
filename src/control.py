@@ -56,7 +56,7 @@ class Game:
         n = len(player_agents)
         if not 2 <= n <= 5:
             raise Exception('Unsupported number of players: {}'.format(player_agents))
-        cheques = {2: CHEQUES_FOR_2, 3: CHEQUES_FOR_3, 4: CHEQUES_FOR_4, 5: CHEQUES_FOR_5}
+        cheques = {2: CHEQUES_FOR_2[:], 3: CHEQUES_FOR_3[:], 4: CHEQUES_FOR_4[:], 5: CHEQUES_FOR_5[:]}
         players = [Player(p, cs) for p, cs in zip(player_agents, cheques[n])]
         self._players = players
         self._deck = Deck()
@@ -70,8 +70,8 @@ class Game:
         cheque_ordinal = bidder.num_unavailable_cheques + 1
         new_cards = board.take_booty_cards()
         bidder.gain_cards(new_cards, self._round, bid_cheque, cheque_ordinal)
-        bidder.remove_available_cheque(bid_cheque)
         gained_cheque = board.cheque
+        bidder.remove_available_cheque(bid_cheque)
         bidder.add_unavailable_cheque(gained_cheque)
         board.replace_cheque(bid_cheque)
         logging.debug('  {} wins the auction:'.format(bidder.player_agent))
@@ -164,7 +164,7 @@ class Game:
     def _score_round(self):
         nums_bodyguards = [player.num_bodyguards for player in self._players]
         for player in self._players:
-            player.round_scoring(min(nums_bodyguards), max(nums_bodyguards))
+            player.do_round_scoring(min(nums_bodyguards), max(nums_bodyguards))
 
     def _play_round(self, round_number):
         logging.debug('-------')
@@ -193,37 +193,33 @@ class Game:
     def _is_game_end_valid(self):
         expected_cards = sum([c.how_many for c in Card])
         deck_cards = self._deck.size()
+        policemen = self._board.num_policemen
         discarded_booty_cards = len(self._board._discarded_booty)
         discarded_policemen = self._board._num_discarded_policemen
         player_cards = sum([len(p._cards) for p in self._players])
         player_scored_cards = sum([len(p._scored_cards) for p in self._players])
-        num_cards = deck_cards + discarded_booty_cards + discarded_policemen + player_cards + player_scored_cards
+        num_cards = deck_cards + discarded_booty_cards + policemen + discarded_policemen + player_cards + player_scored_cards
         if num_cards != expected_cards:
             raise Exception('Unexpected number of cards at game end: expected {}, but had {}.'.format(expected_cards, num_cards))
         counted_player_cards = sum(v for p in self._players for k, v in p._counts.items())
-        counted_cards = deck_cards + discarded_booty_cards + discarded_policemen + player_cards + player_scored_cards
+        counted_cards = deck_cards + discarded_booty_cards + policemen + discarded_policemen + counted_player_cards + player_scored_cards
         if counted_cards != expected_cards:
             raise Exception('Unexpected card counts at game end: expected {}, but had {}.'.format(expected_cards, counted_cards))
 
     def _score_game_end(self):
         cheque_totals = [player.cheque_total for player in self._players]
         for player in self._players:
-            player.game_end_scoring(min(cheque_totals), max(cheque_totals))
+            player.do_game_end_scoring(min(cheque_totals), max(cheque_totals))
 
-    def _summary_scores(self):
-        return {str(player.player_agent): player.score for player in self._players}
+    def _get_player_scorings(self):
+        return {player.player_agent: player.get_final_scoring() for player in self._players}
 
-    def _accumulated_card_scores(self):
-        return {str(player.player_agent): player.accumulated_card_score for player in self._players}
-
-    def _adjusted_card_scores(self):
-        return {str(player.player_agent): player.adjusted_card_score for player in self._players}
-
-    def _cheque_scores(self):
-        return {str(player.player_agent): player.cheque_score for player in self._players}
-
-    def _detailed_scores(self):
-        return {str(player.player_agent): str(player.detailed_score) for player in self._players}
+    def _print_scores(self, scorings):
+        print('Detailed scores:\n' + '\n'.join(str(s) for p, s in scorings.items()))
+        print('Accumulated card scores: ' + ', '.join('"{}" = {}'.format(p, s.final_accumulated_card_score()) for p, s in scorings.items()))
+        print('Adjusted card scores: ' + ', '.join('"{}" = {}'.format(p, s.final_adjusted_card_score()) for p, s in scorings.items()))
+        print('Cheque scores: ' + ', '.join('"{}" = {}'.format(p, s.final_cheque_score()) for p, s in scorings.items()))
+        print('Total scores: ' + ', '.join('"{}" = {}'.format(p, s.final_score()) for p, s in scorings.items()))
 
     def play_game(self):
         if self._end:
@@ -242,11 +238,9 @@ class Game:
         logging.debug('Game has ended')
         logging.debug('==============')
         self._is_game_end_valid()
-        logging.debug('Detailed scores:\n' + '\n'.join('{}'.format(v) for k, v in self._detailed_scores().items()))
-        logging.debug('Accumulated card scores: ' + str(self._accumulated_card_scores()))
-        logging.debug('Adjusted card scores: ' + str(self._adjusted_card_scores()))
-        logging.debug('Cheque scores: ' + str(self._cheque_scores()))
-        logging.debug('Total scores: ' + str(self._summary_scores()))
+        scorings = self._get_player_scorings()
+        self._print_scores(scorings)
+        return scorings
 
     def auctioned_cards(self):
         return len(self._board.get_cards())

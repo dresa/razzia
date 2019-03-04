@@ -74,32 +74,35 @@ class Deck:
 
 
 class Card(Enum):
-    def __init__(self, id, how_many, is_trinket, is_business, holdable, permanent):
+    def __init__(self, id, how_many, is_trinket, is_business, permanent):
         self.how_many = how_many
         self.is_trinket = is_trinket
         self.is_business = is_business
-        self.holdable = holdable
         self.permanent = permanent
     def __str__(self):
         return self.name
-    Policeman=(1, 21, False, False, False, False)
-    Ring=(2, 4, True, False, True, False)
-    Watch=(3, 4, True, False, True, False)
-    Brooch=(4, 4, True, False, True, False)
-    Chain=(5, 4, True, False, True, False)
-    Diamond=(6, 4, True, False, True, False)
-    Bodyguard=(7, 16, False, False, True, True)
-    Car=(8, 16, False, False, True, True)
-    Driver=(9, 10, False, False, True, False)
-    Thief=(10, 6, False, False, True, False)
-    GoldCoin=(11, 3, False, False, True, False)
-    Casino=(12, 4, False, True, True, True)
-    Transportation=(13, 4, False, True, True, True)
-    Film=(14, 4, False, True, True, True)
-    HorseRacing=(15, 4, False, True, True, True)
-    RealEstate=(16, 4, False, True, True, True)
-    NightClub=(17, 4, False, True, True, True)
-    Restaurant=(18, 4, False, True, True, True)
+    Policeman     =( 1, 21, False, False, False)
+    Ring          =( 2,  4, True,  False, False)
+    Watch         =( 3,  4, True,  False, False)
+    Brooch        =( 4,  4, True,  False, False)
+    Chain         =( 5,  4, True,  False, False)
+    Diamond       =( 6,  4, True,  False, False)
+    Bodyguard     =( 7, 16, False, False, True)
+    Car           =( 8, 16, False, False, True)
+    Driver        =( 9, 10, False, False, False)
+    Thief         =(10,  6, False, False, False)
+    GoldCoin      =(11,  3, False, False, False)
+    Casino        =(12,  4, False, True,  True)
+    Transportation=(13,  4, False, True,  True)
+    Film          =(14,  4, False, True,  True)
+    HorseRacing   =(15,  4, False, True,  True)
+    RealEstate    =(16,  4, False, True,  True)
+    NightClub     =(17,  4, False, True,  True)
+    Restaurant    =(18,  4, False, True,  True)
+
+TRINKET_CARDS = [c for c in Card if c.is_trinket]
+REMOVABLE_CARDS = [c for c in Card if not c.permanent]
+BUSINESS_CARDS = [c for c in Card if c.is_business]
 
 
 class Cheque:
@@ -139,22 +142,22 @@ CHEQUE_STARTING = Cheque.One
 
 CHEQUES_PLAYER_A_FOR_2 = [Cheque.Two, Cheque.Five, Cheque.Six, Cheque.Nine]
 CHEQUES_PLAYER_B_FOR_2 = [Cheque.Three, Cheque.Four, Cheque.Seven, Cheque.Eight]
-CHEQUES_FOR_2 = [CHEQUES_PLAYER_A_FOR_2, CHEQUES_PLAYER_B_FOR_2]
+CHEQUES_FOR_2 = [CHEQUES_PLAYER_A_FOR_2[:], CHEQUES_PLAYER_B_FOR_2[:]]
 
 CHEQUES_PLAYER_A_FOR_3 = [Cheque.Two, Cheque.Five, Cheque.Eight, Cheque.Thirteen]
 CHEQUES_PLAYER_B_FOR_3 = [Cheque.Three, Cheque.Six, Cheque.Nine, Cheque.Twelve]
 CHEQUES_PLAYER_C_FOR_3 = [Cheque.Four, Cheque.Seven, Cheque.Ten, Cheque.Eleven]
-CHEQUES_FOR_3 = [CHEQUES_PLAYER_A_FOR_3, CHEQUES_PLAYER_B_FOR_3, CHEQUES_PLAYER_C_FOR_3]
+CHEQUES_FOR_3 = [CHEQUES_PLAYER_A_FOR_3[:], CHEQUES_PLAYER_B_FOR_3[:], CHEQUES_PLAYER_C_FOR_3[:]]
 
 CHEQUES_PLAYER_A_FOR_4 = [Cheque.Two, Cheque.Six, Cheque.Thirteen]
 CHEQUES_PLAYER_B_FOR_4 = [Cheque.Three, Cheque.Seven, Cheque.Twelve]
 CHEQUES_PLAYER_C_FOR_4 = [Cheque.Four, Cheque.Eight, Cheque.Eleven]
 CHEQUES_PLAYER_D_FOR_4 = [Cheque.Five, Cheque.Nine, Cheque.Ten]
-CHEQUES_FOR_4 = [CHEQUES_PLAYER_A_FOR_4, CHEQUES_PLAYER_B_FOR_4, CHEQUES_PLAYER_C_FOR_4, CHEQUES_PLAYER_D_FOR_4]
+CHEQUES_FOR_4 = [CHEQUES_PLAYER_A_FOR_4[:], CHEQUES_PLAYER_B_FOR_4[:], CHEQUES_PLAYER_C_FOR_4[:], CHEQUES_PLAYER_D_FOR_4[:]]
 
 CHEQUES_PLAYER_A_FOR_5 = [Cheque.Two, Cheque.Seven, Cheque.Sixteen]
 CHEQUES_PLAYER_B_FOR_5 = [Cheque.Three, Cheque.Eight, Cheque.Fifteen]
 CHEQUES_PLAYER_C_FOR_5 = [Cheque.Four, Cheque.Nine, Cheque.Fourteen]
 CHEQUES_PLAYER_D_FOR_5 = [Cheque.Five, Cheque.Ten, Cheque.Thirteen]
 CHEQUES_PLAYER_E_FOR_5 = [Cheque.Six, Cheque.Eleven, Cheque.Twelve]
-CHEQUES_FOR_5 = [CHEQUES_PLAYER_A_FOR_5, CHEQUES_PLAYER_B_FOR_5, CHEQUES_PLAYER_C_FOR_5, CHEQUES_PLAYER_D_FOR_5, CHEQUES_PLAYER_E_FOR_5]
+CHEQUES_FOR_5 = [CHEQUES_PLAYER_A_FOR_5[:], CHEQUES_PLAYER_B_FOR_5[:], CHEQUES_PLAYER_C_FOR_5[:], CHEQUES_PLAYER_D_FOR_5[:], CHEQUES_PLAYER_E_FOR_5[:]]

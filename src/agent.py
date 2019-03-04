@@ -29,3 +29,4 @@ class TrivialPlayerAgent(PlayerAgent):
                 return min(exceeding_cheques)
             else:
                 return min(cheques)
+
