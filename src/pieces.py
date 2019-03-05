@@ -105,33 +105,33 @@ REMOVABLE_CARDS = [c for c in Card if not c.permanent]
 BUSINESS_CARDS = [c for c in Card if c.is_business]
 
 
-class Cheque:
-    def __init__(self, priority):
-        self.priority = priority
+class Cheque(Enum):
     def __str__(self):
-        return 'Cheque({})'.format(self.priority)
+        return 'Cheque({})'.format(self.value)
     def __eq__(self, other):
-        return self.priority == other.priority
+        return self.value == other.value
     def __lt__(self, other):
-        return self.priority < other.priority
+        return self.value < other.value
+    def __le__(self, other):
+        return self.value <= other.value
     def __hash__(self):
-        return hash(self.priority)
-    One=(1)
-    Two=(2)
-    Three=(3)
-    Four=(4)
-    Five=(5)
-    Six=(6)
-    Seven=(7)
-    Eight=(8)
-    Nine=(9)
-    Ten=(10)
-    Eleven=(11)
-    Twelve=(12)
-    Thirteen=(13)
-    Fourteen=(14)
-    Fifteen=(15)
-    Sixteen=(16)
+        return hash(self.value)
+    One=1
+    Two=2
+    Three=3
+    Four=4
+    Five=5
+    Six=6
+    Seven=7
+    Eight=8
+    Nine=9
+    Ten=10
+    Eleven=11
+    Twelve=12
+    Thirteen=13
+    Fourteen=14
+    Fifteen=15
+    Sixteen=16
 
 
 ##

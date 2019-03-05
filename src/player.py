@@ -30,7 +30,7 @@ class Player:
     def cheque_total(self):
         cheques = self._available_cheques[:]  # copy
         cheques.extend(self._unavailable_cheques)
-        return sum(cheques)
+        return sum(c.value for c in cheques)
     @property
     def num_bodyguards(self):
         return self._counts[Card.Bodyguard]

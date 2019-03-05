@@ -34,6 +34,7 @@ class Razzia:
         multi_scorings = [self._play_one_game() for _ in range(num_games)]
         print(analytics.analyze_player_order(multi_scorings))
         print(analytics.analyze_card_value(multi_scorings))
+        print(analytics.analyze_cheque_value(multi_scorings))
 
 
 
@@ -41,8 +42,8 @@ class Razzia:
 def main(args):
     logging.basicConfig(level=logging.INFO)
     r = Razzia(4, random_seed=1)
-    r.play_game()
-    #r.run_statistics(100)
+    #r.play_game()
+    r.run_statistics(1000)
 
 if __name__ == '__main__':
     main(sys.argv[1:])

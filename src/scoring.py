@@ -15,15 +15,15 @@ class Score(Enum):
 
 
 class ScoringCard:
-    def __init__(self, card, round, cheque_value, cheque_ordinal):
+    def __init__(self, card, round, cheque, cheque_ordinal):
         self.card = card
         self.round = round
-        self.cheque_value = cheque_value
+        self.cheque = cheque
         self.cheque_ordinal = cheque_ordinal
         self.scored_points = 0
     def __str__(self):
         return '{card:14s} (won by cheque {val} (ordinal {ord}) on Round {round}) scored {score} points'.format(
-            card=self.card, val=self.cheque_value, ord=self.cheque_ordinal, round=self.round, score=self.scored_points)
+            card=self.card, val=self.cheque, ord=self.cheque_ordinal, round=self.round, score=self.scored_points)
 
 
 class ScoringCheque:
@@ -146,14 +146,14 @@ class Scoring:
                 sc.scored_points += unique_points + bonus_points + multi_points
 
     def score_cheques(self, min_money, max_money, scoring_cheques):
-        total_cheques_value = sum(sc.cheque for sc in scoring_cheques)
+        total_cheques_value = sum(sc.cheque.value for sc in scoring_cheques)
         money_low = -5 if total_cheques_value == min_money else 0
         money_high = 5 if total_cheques_value == max_money else 0
         score_money = money_low + money_high
         self._scores[Score.Cheques] += score_money
 
     def assign_cheque_scores(self, min_money, max_money, scoring_cheques):
-        total_cheques_value = sum(sc.cheque for sc in scoring_cheques)  # TODO: unify with "score_cheques"
+        total_cheques_value = sum(sc.cheque.value for sc in scoring_cheques)  # TODO: unify with "score_cheques"
         money_low = -5 if total_cheques_value == min_money else 0
         money_high = 5 if total_cheques_value == max_money else 0
         score_money = money_low + money_high
