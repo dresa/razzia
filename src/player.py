@@ -34,6 +34,11 @@ class Player:
     @property
     def num_bodyguards(self):
         return self._counts[Card.Bodyguard]
+    @property
+    def num_thieves(self):
+        return self._counts[Card.Thief]
+    def num_cards(self, card_kind):
+        return self._counts[card_kind]
     def get_final_scoring(self):
         return self._scoring
     def available_cheques(self):
@@ -54,6 +59,16 @@ class Player:
         self._cards.extend(gained)
         for c in cards:
             self._counts[c] += 1
+    def remove_cards(self, cards_to_remove):
+        # remove player's cards one-for-one
+        for c in cards_to_remove:
+            if c not in pieces.REMOVABLE_CARDS:
+                raise Exception('Trying to remove an unremovable card ({}) from a player.'.format(c))
+            self._cards.remove(c)
+            self._counts[c] -= 1
+
+    def card_counts(self):
+        return dict(self._counts)  # copy
 
     def do_round_scoring(self, min_bodyguard, max_bodyguard):
         self._scoring.score_round(min_bodyguard, max_bodyguard, self._cards)

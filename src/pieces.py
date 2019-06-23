@@ -11,10 +11,14 @@ class Board:
 
     def add_card(self, card):
         self._cards.append(card)
-    def take_booty_cards(self):
+    def take_all_booty_cards(self):
         taken = self._cards
         self._cards = []
         return taken
+    def take_booty_cards(self, cards_to_take):
+        for c in cards_to_take:
+            self._cards.remove(c)
+        return cards_to_take
     def discard_booty_cards(self):
         self._discarded_booty.extend(self._cards)
         self._cards = []
@@ -29,6 +33,11 @@ class Board:
         return c
     def get_cards(self):
         return self._cards[:]  # copy
+    def get_card_counts(self):
+        counts = {c: 0 for c in Card if c != Card.Policeman}
+        for c in self._cards:
+            counts[c] += 1
+        return counts
     @property
     def num_cards(self):
         return len(self._cards)

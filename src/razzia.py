@@ -20,9 +20,15 @@ import analytics
 class Razzia:
     DEFAULT_PLAYER_NAMES = ('Player A', 'Player B', 'Player C', 'Player D', 'Player E')
 
-    def __init__(self, num_players, random_seed=None):
+    def __init__(self, num_players, ai=None, random_seed=None):
         self._player_agents = Razzia.DEFAULT_PLAYER_NAMES
-        self._player_agents = [agent.TrivialPlayerAgent(name) for name in self._player_agents[:num_players]]
+        if ai is None or ai.lower() == 'trivial':
+            ai_agent = agent.TrivialPlayerAgent
+        elif ai.lower() == 'stealing':
+            ai_agent = agent.StealingPlayerAgent
+        else:
+            raise Exception('Unknown AI player setup: {}'.format(ai))
+        self._player_agents = [ai_agent(name) for name in self._player_agents[:num_players]]
         self._random_seed = random_seed
     def _play_one_game(self):
         return Game(self._player_agents).play_game()
@@ -47,10 +53,10 @@ class Razzia:
 
 def main(args):
     logging.basicConfig(level=logging.INFO)
-    r = Razzia(4, random_seed=1)
+    r = Razzia(4, ai='stealing', random_seed=1)
     scorings = r.play_game()
     r.print_scores(scorings)
-    #r.run_statistics(1000)
+    r.run_statistics(1000)
 
 if __name__ == '__main__':
     main(sys.argv[1:])

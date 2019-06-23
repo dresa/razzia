@@ -68,7 +68,7 @@ class Game:
 
     def _execute_winning_bid(self, bidder, bid_cheque, board):
         cheque_ordinal = bidder.num_unavailable_cheques + 1
-        new_cards = board.take_booty_cards()
+        new_cards = board.take_all_booty_cards()
         bidder.gain_cards(new_cards, self._round, bid_cheque, cheque_ordinal)
         gained_cheque = board.cheque
         bidder.remove_available_cheque(bid_cheque)
@@ -92,7 +92,7 @@ class Game:
                 logging.debug('  {} PASSes bid because cannot outbid (had {} available).'.format(agent, avail_cheques_str))
                 continue
             is_mandated = auction.auction_mode == AuctionMode.ByPlayer and player == auction.initiator
-            game_view = GameView(self, agent)
+            game_view = GameView(self, agent, self._players, self._board)
             auction_view = AuctionView(auction)
             player_view = PlayerView(player)
             bidded_cheque = player.player_agent.bid(game_view, auction_view, player_view, is_mandated)
@@ -114,7 +114,7 @@ class Game:
         if not highest_bidder:
             self._board.discard_booty_cards()
     def _execute_auction_by_player(self, initiator):
-        pass  # FIXME
+        pass  # FIXME: implement this action
     def _execute_auction_by_policeman(self, initiator):
         logging.debug('Starting an Auction (by Policeman)')
         self._execute_auction(AuctionMode.ByPoliceman, initiator, self._board)
@@ -141,6 +141,25 @@ class Game:
             if board_is_full:
                 self._execute_auction_by_full_board(initiator)
             return Trigger.Turn
+    def _execute_thieves(self, initiator):
+        num_thieves = initiator.num_thieves
+        if not num_thieves or not self._board.num_cards:
+            raise Exception('Cannot execute Thief action: player has no thieves or no cards on board.')
+        cards_to_steal = initiator.player_agent.steal(GameView(self, initiator.player_agent))
+        num_steal = len(cards_to_steal)
+        if num_thieves < num_steal:
+            raise Exception('Cannot steal {} cards with {} thieves.'.format(num_steal, num_thieves))
+        initiator.remove_cards(num_steal * [Card.Thief])
+        self._board.take_booty_cards(cards_to_steal)
+        initiator.gain_cards(cards_to_steal, self.round, Card.Thief, Card.Thief)  # Thief used instead of a cheque.
+        return Trigger.Turn
+
+        # 1. Check that initiator has thieves and there are cards on board.
+        # 2. Call thief action (player agent decides how may thieves to use and what cards to pick.)
+        # 3. Remove a number of thieves from player.
+        # 4. Remove picked-up cards from board
+        # 5. Let player gain the cards.
+        # 6. Trigger Turn
 
     def _advance_round(self):
         self._round += 1
@@ -149,11 +168,11 @@ class Game:
         return max([p for p in self._players], key=lambda x: x.highest_cheque)
 
     def _play_one_turn(self, player):
-        action = player.player_agent.act(GameView(self, player))
+        action = player.player_agent.act(GameView(self, player, self._players, self._board))
         logging.debug('{} chooses {}'.format(player.player_agent, action))
         t = type(action)
         if t == tuple or t == list:  # Thieves?
-            pass  # FIXME: complete "Thief" action
+            return self._execute_thieves(player)
         elif action == ActionType.Draw:
             return self._execute_draw(player)
         elif action == ActionType.AuctionByPlayer:
@@ -240,6 +259,14 @@ class Game:
     @property
     def num_players(self):
         return len(self._players)
+
+    @property
+    def round(self):
+        return self._round
+
+    @property
+    def rounds_remaining(self):
+        return GAME_ROUNDS - self._round
 
     @property
     def last_round(self):

@@ -167,3 +167,49 @@ class Scoring:
         s  = 'Scoring {} total {}:\n'.format(self._name, self.final_score())
         s += '\n'.join('  {}: {}'.format(k, v) for k, v in self._scores.items())
         return s
+
+
+class ExpectedScore:
+    @staticmethod
+    def _static_card_score(card_counts, min_bodyguard, max_bodyguard, num_rounds_remaining):
+        """Score when all remaining rounds are played out but no more cards are gained."""
+        score_gold = 3 * card_counts[Card.GoldCoin]
+        score_thief = 2 * card_counts[Card.Thief]
+        num_unique_trinkets = len([t for t in pieces.TRINKET_CARDS if card_counts[t]])
+        score_trinkets = {0: -5, 1: 0, 2: 0, 3: 5, 4: 10, 5: 15}[num_unique_trinkets]
+        bodyguard_low = -2 if card_counts[Card.Bodyguard] == min_bodyguard else 0
+        bodyguard_high = 5 if card_counts[Card.Bodyguard] == max_bodyguard else 0
+        score_bodyguard = bodyguard_low + bodyguard_high
+        score_car = 1 * card_counts[Card.Car] if card_counts[Card.Driver] else 0
+        score_driver = 1 * card_counts[Card.Driver]
+
+        score_round = score_gold + score_thief + score_trinkets + score_bodyguard + score_car + score_driver
+        score_remaining = num_rounds_remaining * (score_bodyguard + 0 - 5)  # cars 0 (without driver); trinkets -5
+
+        # Businesses
+        num_unique_businesses = len([b for b in pieces.BUSINESS_CARDS if card_counts[b]])
+        got_all_businesses = num_unique_businesses == len(pieces.BUSINESS_CARDS)
+        business_bonus = 3 if got_all_businesses else 0
+        score_unique_businesses = num_unique_businesses + business_bonus
+        score_multi_businesses = sum([5 * (card_counts[b] - 2) for b in pieces.BUSINESS_CARDS if card_counts[b] >= 3])
+        score_business = score_unique_businesses + score_multi_businesses
+
+        score = score_round + score_remaining + score_business
+        return score
+
+    @staticmethod
+    def marginal_card_score(counts, gained_counts, min_oppo_bodyguards, max_oppo_bodyguards, num_rounds_remaining):
+        score_now = ExpectedScore._static_card_score(
+            counts,
+            min(min_oppo_bodyguards, counts[Card.Bodyguard]),
+            max(max_oppo_bodyguards, counts[Card.Bodyguard]),
+            num_rounds_remaining)
+        after_counts = {c: counts[c] + gained_counts[c] for c in counts}
+        score_after = ExpectedScore._static_card_score(
+            after_counts,
+            min(min_oppo_bodyguards, after_counts[Card.Bodyguard]),
+            max(max_oppo_bodyguards, after_counts[Card.Bodyguard]),
+            num_rounds_remaining)
+        marginal_gain = score_after - score_now
+        return marginal_gain
+

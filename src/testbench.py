@@ -6,7 +6,7 @@ class TestRazziaScoring(unittest.TestCase):
 
     def test_fixed_game(self):
         n = 4
-        r = Razzia(n, random_seed=1)
+        r = Razzia(n, ai='trivial', random_seed=1)
         scorings = r.play_game()
         name_to_agent = {agent.name : agent for agent in scorings.keys()}
         print('***')
