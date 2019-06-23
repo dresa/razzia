@@ -11,6 +11,9 @@ class PlayerAgent:
         raise NotImplementedError('Cannot use base PlayerAgent as agent: implement "bid()" in derived class.')
     def __str__(self):
         return self._name
+    @property
+    def name(self):
+        return self._name
 
 
 class TrivialPlayerAgent(PlayerAgent):

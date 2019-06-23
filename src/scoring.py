@@ -44,6 +44,9 @@ class Scoring:
     def final_score(self):
         return round(sum(self._scores.values()))
 
+    def final_score_by_type(self):
+        return dict(self._scores)
+
     def final_card_score(self):
         return round(sum(sc.scored_points for sc in self._scoring_cards))
 

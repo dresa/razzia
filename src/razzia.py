@@ -18,8 +18,10 @@ import analytics
 
 
 class Razzia:
+    DEFAULT_PLAYER_NAMES = ('Player A', 'Player B', 'Player C', 'Player D', 'Player E')
+
     def __init__(self, num_players, random_seed=None):
-        self._player_agents = ('Player A', 'Player B', 'Player C', 'Player D', 'Player E')
+        self._player_agents = Razzia.DEFAULT_PLAYER_NAMES
         self._player_agents = [agent.TrivialPlayerAgent(name) for name in self._player_agents[:num_players]]
         self._random_seed = random_seed
     def _play_one_game(self):
@@ -35,15 +37,20 @@ class Razzia:
         print(analytics.analyze_player_order(multi_scorings))
         print(analytics.analyze_card_value(multi_scorings))
         print(analytics.analyze_cheque_value(multi_scorings))
-
-
+    def print_scores(self, scorings):
+        print('Detailed scores:\n' + '\n'.join(str(s) for p, s in scorings.items()))
+        print('Accumulated card scores: ' + ', '.join('"{}" = {}'.format(p, s.final_accumulated_card_score()) for p, s in scorings.items()))
+        print('Adjusted card scores: ' + ', '.join('"{}" = {}'.format(p, s.final_adjusted_card_score()) for p, s in scorings.items()))
+        print('Cheque scores: ' + ', '.join('"{}" = {}'.format(p, s.final_cheque_score()) for p, s in scorings.items()))
+        print('Total scores: ' + ', '.join('"{}" = {}'.format(p, s.final_score()) for p, s in scorings.items()))
 
 
 def main(args):
     logging.basicConfig(level=logging.INFO)
     r = Razzia(4, random_seed=1)
-    #r.play_game()
-    r.run_statistics(1000)
+    scorings = r.play_game()
+    r.print_scores(scorings)
+    #r.run_statistics(1000)
 
 if __name__ == '__main__':
     main(sys.argv[1:])

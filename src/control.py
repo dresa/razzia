@@ -214,13 +214,6 @@ class Game:
     def _get_player_scorings(self):
         return {player.player_agent: player.get_final_scoring() for player in self._players}
 
-    def _print_scores(self, scorings):
-        print('Detailed scores:\n' + '\n'.join(str(s) for p, s in scorings.items()))
-        print('Accumulated card scores: ' + ', '.join('"{}" = {}'.format(p, s.final_accumulated_card_score()) for p, s in scorings.items()))
-        print('Adjusted card scores: ' + ', '.join('"{}" = {}'.format(p, s.final_adjusted_card_score()) for p, s in scorings.items()))
-        print('Cheque scores: ' + ', '.join('"{}" = {}'.format(p, s.final_cheque_score()) for p, s in scorings.items()))
-        print('Total scores: ' + ', '.join('"{}" = {}'.format(p, s.final_score()) for p, s in scorings.items()))
-
     def play_game(self):
         if self._end:
             raise Exception('Game has already ended.')
@@ -239,7 +232,6 @@ class Game:
         logging.debug('==============')
         self._is_game_end_valid()
         scorings = self._get_player_scorings()
-        self._print_scores(scorings)
         return scorings
 
     def auctioned_cards(self):
