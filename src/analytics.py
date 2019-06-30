@@ -42,6 +42,7 @@ def analyze_card_value(multi_scorings):
 
 def analyze_cheque_value(multi_scorings):
     score_cheques = [c for c in Cheque]
+    score_cheques.append(Card.Thief)
     rounds = range(1, control.GAME_ROUNDS + 1)
     points = {}
     for game_idx, scores in enumerate(multi_scorings):

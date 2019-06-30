@@ -61,8 +61,8 @@ class StealingPlayerAgent(TrivialPlayerAgent):
         player_view = game_view.get_active_player_view()
         all_player_views = game_view.get_all_player_views()
         board_view = game_view.get_board_view()
-        if player_view.num_available_thieves():
-            return False
+        if player_view.num_available_thieves() == 0:
+            return False, None, None
         opponent_bg_counts = [p.card_counts()[Card.Bodyguard] for p in all_player_views]
         opponent_bg_counts.remove(player_view.card_counts()[Card.Bodyguard])  # remove first occurrence
         valuable_cards_available = self._identify_valuable_cards(
@@ -74,11 +74,11 @@ class StealingPlayerAgent(TrivialPlayerAgent):
         #remaining_board_value_low =  # TODO: should consider possibility there is only one valuable, even when being last player.
         outbid_candidates = [p.highest_cheque for p in all_player_views if p.highest_cheque]
         opponents_can_outbid = outbid_candidates and max(outbid_candidates) > player_view.highest_cheque
-        return valuable_cards_available, opponents_can_outbid
+        return True, valuable_cards_available, opponents_can_outbid
 
     def _is_theft_suggested(self, game_view):
-        valuable_cards_available, opponents_can_outbid = self._theft_plan(game_view)
-        theft_suggested = valuable_cards_available and opponents_can_outbid
+        has_thief, valuable_cards_available, opponents_can_outbid = self._theft_plan(game_view)
+        theft_suggested = has_thief and valuable_cards_available and opponents_can_outbid
         # TODO: theft_suggested = valuable_cards_available and (remaining_board_value_low or opponents_can_outbid)
         return theft_suggested
 
@@ -90,7 +90,7 @@ class StealingPlayerAgent(TrivialPlayerAgent):
 
     def steal(self, game_view):
         # TODO: enable stealing more than one card at once.
-        valuable_cards_available, _ = self._theft_plan(game_view)
+        _, valuable_cards_available, _ = self._theft_plan(game_view)
         v = valuable_cards_available
         most_valuable_card = max(v, key=v.get)
         return [most_valuable_card]  # list of all cards to steal (need to have enough Thief cards)

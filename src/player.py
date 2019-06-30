@@ -8,8 +8,9 @@ class Player:
         self._player_agent = player_agent
         self._available_cheques = starting_cheques[:]
         self._unavailable_cheques = []
-        self._cards = []
-        self._scored_cards = []
+        self._scards = []
+        self._scored_scards = []
+        self._removed_scards = []
         self._counts = {c: 0 for c in Card if c != Card.Policeman}
         self._scoring_cheques = None
         self._scoring = Scoring(player_agent)
@@ -19,6 +20,9 @@ class Player:
     @property
     def round_is_over(self):
         return len(self._available_cheques) == 0
+    @property
+    def num_available_cheques(self):
+        return len(self._available_cheques)
     @property
     def num_unavailable_cheques(self):
         return len(self._unavailable_cheques)
@@ -42,7 +46,7 @@ class Player:
     def get_final_scoring(self):
         return self._scoring
     def available_cheques(self):
-        return self._available_cheques
+        return self._available_cheques[:]  # copy
     def has_cheque_available(self, cheque):
         return cheque in self._available_cheques
     def refresh_cheques(self):
@@ -56,7 +60,7 @@ class Player:
         return sum(self._available_cheques) + sum(self._unavailable_cheques)
     def gain_cards(self, cards, round, cheque_value, cheque_ordinal):
         gained = [ScoringCard(c, round, cheque_value, cheque_ordinal) for c in cards]
-        self._cards.extend(gained)
+        self._scards.extend(gained)
         for c in cards:
             self._counts[c] += 1
     def remove_cards(self, cards_to_remove):
@@ -64,36 +68,40 @@ class Player:
         for c in cards_to_remove:
             if c not in pieces.REMOVABLE_CARDS:
                 raise Exception('Trying to remove an unremovable card ({}) from a player.'.format(c))
-            self._cards.remove(c)
+            cards = [sc.card for sc in self._scards]
+            idx_to_remove = cards.index(c)
+            sc_to_remove = self._scards[idx_to_remove]
+            self._scards.remove(sc_to_remove)
+            self._removed_scards.append(sc_to_remove)
             self._counts[c] -= 1
 
     def card_counts(self):
         return dict(self._counts)  # copy
 
     def do_round_scoring(self, min_bodyguard, max_bodyguard):
-        self._scoring.score_round(min_bodyguard, max_bodyguard, self._cards)
-        self._scoring.assign_round_card_scores(min_bodyguard, max_bodyguard, self._cards)
+        self._scoring.score_round(min_bodyguard, max_bodyguard, self._scards)
+        self._scoring.assign_round_card_scores(min_bodyguard, max_bodyguard, self._scards)
 
-        self._scored_cards.extend(sc for sc in self._cards if sc.card in pieces.REMOVABLE_CARDS)
-        self._cards = [sc for sc in self._cards if sc.card not in pieces.REMOVABLE_CARDS]
+        self._scored_scards.extend(sc for sc in self._scards if sc.card in pieces.REMOVABLE_CARDS)
+        self._scards = [sc for sc in self._scards if sc.card not in pieces.REMOVABLE_CARDS]
         for card_type in pieces.REMOVABLE_CARDS:
             self._counts[card_type] = 0
 
     def do_game_end_scoring(self, min_money, max_money):
         cheques = self._available_cheques + self._unavailable_cheques
         self._scoring_cheques = [ScoringCheque(c) for c in cheques]
-        self._scoring.score_businesses(self._cards)
+        self._scoring.score_businesses(self._scards)
         self._scoring.score_cheques(min_money, max_money, self._scoring_cheques)
-        self._scoring.assign_business_card_scores(self._cards)
+        self._scoring.assign_business_card_scores(self._scards)
         self._scoring.assign_cheque_scores(min_money, max_money, self._scoring_cheques)
-        self._scoring.attach_final_scoring_cards(self._scored_cards + self._cards)
+        self._scoring.attach_final_scoring_cards(self._scored_scards + self._scards)
         self._scoring.attach_final_scoring_cheques(self._scoring_cheques)
 
     def __str__(self):
         s  = '\n' + str(self._player_agent) + '\n'
         s += '  Available cheques: ' + ', '.join(str(c) for c in self._available_cheques) + '\n'
         s += '  Unavailable cheques: ' + ', '.join(str(c) for c in self._unavailable_cheques) + '\n'
-        s += '  Gained cards: \n    ' + '\n    '.join(str(c) for c in self._cards) + '\n'
+        s += '  Gained cards: \n    ' + '\n    '.join(str(c) for c in self._scards) + '\n'
         s += '  Counts: ' + ', '.join(['{} {}'.format(k.name, v) for k, v in self._counts.items() if v])
         return s
 

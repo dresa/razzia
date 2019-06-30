@@ -6,10 +6,14 @@ class GameView:
         self._active_player = active_player
         self._all_players = all_players
         self._board = board
+        from agent import PlayerAgent
+        if isinstance(active_player, PlayerAgent):
+            raise Exception('wrong type of arg: got PlayerAgent instead of player')
+
     def get_active_player_view(self):
         return PlayerView(self._active_player)
     def get_all_player_views(self):
-        return (PlayerView(p) for p in self._all_players)
+        return [PlayerView(p) for p in self._all_players]
     def get_board_view(self):
         return BoardView(self._board)
     @property
@@ -29,10 +33,13 @@ class AuctionView:
 class PlayerView:
     def __init__(self, player):
         self._player = player
+        from agent import PlayerAgent
+        if isinstance(player, PlayerAgent):
+            raise Exception('wrong type of arg: got PlayerAgent instead of player')
     def available_cheques(self):
         return self._player.available_cheques()  # copy
     def num_available_thieves(self):
-        self._player.num_cards(Card.Thief)
+        return self._player.num_cards(Card.Thief)
     @property
     def highest_cheque(self):
         return self._player.highest_cheque

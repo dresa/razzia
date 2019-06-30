@@ -2,6 +2,7 @@ from enum import Enum
 from pieces import Card
 import pieces
 import control
+import logging
 
 class Score(Enum):
     Trinkets=1
@@ -88,6 +89,11 @@ class Scoring:
         score_car = 1 * counts[Card.Car] if counts[Card.Driver] else 0
         score_driver = 1 * counts[Card.Driver]
 
+        scores = [score_bodyguard, score_car, score_driver, score_gold, score_thief, score_trinkets, ]
+        groups = [Card.Bodyguard.name, Card.Car.name, Card.Driver.name, Card.GoldCoin.name, Card.Thief.name, 'Trinkets']
+        group_scores_str = ', '.join('{}({:+})'.format(g, s) for g, s in zip(groups, scores))
+        logging.debug('  Round scoring for {}: {}'.format(self._name, group_scores_str))
+
         self._scores[Score.GoldCoins] += score_gold
         self._scores[Score.Thieves] += score_thief
         self._scores[Score.Trinkets] += score_trinkets
@@ -131,6 +137,9 @@ class Scoring:
         business_bonus = 3 if got_all_businesses else 0
         score_unique_businesses = num_unique_businesses + business_bonus
         score_multi_businesses = sum([5 * (counts[b] - 2) for b in pieces.BUSINESS_CARDS if counts[b] >= 3])
+
+        logging.debug('  Business scores for {}: unique({}), multiple({})'.format(self._name, score_unique_businesses, score_multi_businesses))
+
         self._scores[Score.Businesses] += score_unique_businesses + score_multi_businesses
 
     def assign_business_card_scores(self, scoring_cards):

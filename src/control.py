@@ -92,7 +92,7 @@ class Game:
                 logging.debug('  {} PASSes bid because cannot outbid (had {} available).'.format(agent, avail_cheques_str))
                 continue
             is_mandated = auction.auction_mode == AuctionMode.ByPlayer and player == auction.initiator
-            game_view = GameView(self, agent, self._players, self._board)
+            game_view = GameView(self, player, self._players, self._board)
             auction_view = AuctionView(auction)
             player_view = PlayerView(player)
             bidded_cheque = player.player_agent.bid(game_view, auction_view, player_view, is_mandated)
@@ -105,6 +105,8 @@ class Game:
                 logging.debug('  {} PASSes bid deliberately (had {} available).'.format(agent, avail_cheques_str))
         if auction.highest_bid:
             self._execute_winning_bid(auction.highest_bidder, auction.highest_bid, board)
+            if not auction.highest_bidder.num_available_cheques:
+                logging.debug('    is out of cheques and out of round')
         else:
             logging.debug('  No bids in this auction.')
 
@@ -127,6 +129,8 @@ class Game:
             is_instant_round_end = self._board.num_policemen == self._round_end_policemen
             if is_instant_round_end:
                 logging.debug('Policemen limit reached.')
+                discarded_str = ', '.join(str(c) for c in self._board.get_cards())
+                logging.debug('Discarding {} cards from board: {}'.format(self._board.num_cards, discarded_str))
                 if not self.last_round:
                     logging.debug('Round ends with {} cards in deck remaining.'.format(self._deck.size()))
                 self._board.discard_booty_cards()
@@ -145,7 +149,9 @@ class Game:
         num_thieves = initiator.num_thieves
         if not num_thieves or not self._board.num_cards:
             raise Exception('Cannot execute Thief action: player has no thieves or no cards on board.')
-        cards_to_steal = initiator.player_agent.steal(GameView(self, initiator.player_agent))
+        cards_to_steal = initiator.player_agent.steal(GameView(self, initiator, self._players, self._board))
+        stolen_str = ', '.join([sc.name for sc in cards_to_steal])
+        logging.debug('Player agent {} STEALs cards with thieves: {}'.format(initiator.player_agent, stolen_str))
         num_steal = len(cards_to_steal)
         if num_thieves < num_steal:
             raise Exception('Cannot steal {} cards with {} thieves.'.format(num_steal, num_thieves))
@@ -170,8 +176,7 @@ class Game:
     def _play_one_turn(self, player):
         action = player.player_agent.act(GameView(self, player, self._players, self._board))
         logging.debug('{} chooses {}'.format(player.player_agent, action))
-        t = type(action)
-        if t == tuple or t == list:  # Thieves?
+        if action == ActionType.Thief:
             return self._execute_thieves(player)
         elif action == ActionType.Draw:
             return self._execute_draw(player)
@@ -192,10 +197,11 @@ class Game:
         for player in self._players:
             player.refresh_cheques()
         starting_player = self._determine_starting_player()
+        logging.debug('Starting player: {} has highest cheque ({}) and starts the Round.'.format(starting_player.player_agent, max(starting_player.available_cheques())))
         consecutive_passes = 0
         for player in self._round_order_generator.circling_from(starting_player):
             if player.round_is_over:
-                logging.debug('Player agent {} passed (out of round).'.format(player.player_agent))
+                logging.debug('Player agent {} passed (out of Round).'.format(player.player_agent))
                 consecutive_passes += 1
                 if consecutive_passes < self.num_players:
                     continue
@@ -215,13 +221,14 @@ class Game:
         policemen = self._board.num_policemen
         discarded_booty_cards = len(self._board._discarded_booty)
         discarded_policemen = self._board._num_discarded_policemen
-        player_cards = sum([len(p._cards) for p in self._players])
-        player_scored_cards = sum([len(p._scored_cards) for p in self._players])
-        num_cards = deck_cards + discarded_booty_cards + policemen + discarded_policemen + player_cards + player_scored_cards
+        player_cards = sum([len(p._scards) for p in self._players])  # TODO: avoid accessing internals
+        player_scored_cards = sum([len(p._scored_scards) for p in self._players])  # TODO: avoid accessing internals
+        player_removed_cards = sum([len(p._removed_scards) for p in self._players])  # TODO: avoid accessing internals
+        num_cards = deck_cards + discarded_booty_cards + policemen + discarded_policemen + player_cards + player_scored_cards + player_removed_cards
         if num_cards != expected_cards:
             raise Exception('Unexpected number of cards at game end: expected {}, but had {}.'.format(expected_cards, num_cards))
         counted_player_cards = sum(v for p in self._players for k, v in p._counts.items())
-        counted_cards = deck_cards + discarded_booty_cards + policemen + discarded_policemen + counted_player_cards + player_scored_cards
+        counted_cards = deck_cards + discarded_booty_cards + policemen + discarded_policemen + counted_player_cards + player_scored_cards + player_removed_cards
         if counted_cards != expected_cards:
             raise Exception('Unexpected card counts at game end: expected {}, but had {}.'.format(expected_cards, counted_cards))
 
@@ -243,9 +250,9 @@ class Game:
             self._play_round(r)
             self._score_round()
             self._advance_round()
-        logging.debug('Game ends with {} cards in deck remaining.'.format(self._deck.size()))
         self._end = True
         self._score_game_end()
+        logging.debug('Game ends with {} cards in deck remaining.'.format(self._deck.size()))
         logging.debug('==============')
         logging.debug('Game has ended')
         logging.debug('==============')
